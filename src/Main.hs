@@ -1,7 +1,7 @@
 import System.Environment
 
-import Board
 import Creek
+import Solution
 
 main :: IO ()
 main = do
@@ -17,6 +17,3 @@ parse [path] = do
     where
       read_creek creek = read creek :: Creek
 parse  _     = error "Unknown input, try '-h'"
-
-solve :: Creek -> Board
-solve x = undefined
