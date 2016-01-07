@@ -1,6 +1,6 @@
 module Board
   ( Field
-  , Board
+  , Board (Board)
   , Quad
   , (!.), (!#)
   , empty
@@ -10,16 +10,15 @@ module Board
 import Creek (Location, Size, Creek)
 
 data Field = White | Black | Unknown | Outer
-  deriving (Show, Eq)
+  deriving Eq
 
 type Quad = ((Field, Field), (Field, Field))
 
 data Board = Board Size [[Field]]
-  deriving Show
 
 -- Constructor for empty board
 empty :: Size -> Board
-empty size@(x, y) = Board size $ replicate y $ replicate x Unknown
+empty size@(x, y) = Board size (replicate y $ replicate x Unknown)
 
 -- Get value from a field
 field :: Board -> Location -> Field
@@ -27,8 +26,8 @@ field (Board size fs) (x, y) = if (x, y) `inside` size
   then (fs !! (y)) !! (x)
   else Outer
     where
-      (x, y) `inside` (xm, ym) = x >= 0 && x < xm
-                              && y >= 0 && y < ym
+      (x, y) `inside` (xm, ym) =  x >= 0 && x < xm
+                               && y >= 0 && y < ym
 
 -- Get four values from crossing
 quad :: Board -> Location -> Quad
@@ -53,15 +52,15 @@ combinations quad n = let
     matchQuads n fs = findCombinations n [] fs
 
     findCombinations :: Int -> [Field] -> [Field] -> [[Field]]
-    findCombinations 0 hs [] = [reverse hs]
-    findCombinations _ hs [] = []
+    findCombinations 0 hs []     = [reverse hs]
+    findCombinations _ hs []     = []
     findCombinations n hs (f:fs) = case f of
-      Unknown | n > 0 -> (findCombinations n (White:hs) fs) ++ (findCombinations (n-1) (Black:hs) fs)
-              | n == 0 -> findCombinations n (White:hs) fs
+      Unknown | n > 0     -> (findCombinations n (White:hs) fs) ++ (findCombinations (n-1) (Black:hs) fs)
+              | n == 0    -> findCombinations n (White:hs) fs
               | otherwise -> []
-      Black   | n > 0 -> findCombinations (n-1) (Black:hs) fs
+      Black   | n > 0     -> findCombinations (n-1) (Black:hs) fs
               | otherwise -> []
-      other -> findCombinations n (other:hs) fs
+      other               -> findCombinations n (other:hs) fs
   in
     map fieldsToQuad $ matchQuads n $ quadToFields quad
 
@@ -71,4 +70,18 @@ quadToFields :: Quad -> [Field]
 quadToFields ((f1, f2), (f3, f4)) = [f1, f2, f3, f4]
 
 fieldsToQuad :: [Field] -> Quad
-fieldsToQuad [f1, f2, f3, f4] =  ((f1, f2), (f3, f4))
+fieldsToQuad [f1, f2, f3, f4]     =  ((f1, f2), (f3, f4))
+
+-- Pretty printers
+instance Show Field where
+  show Black = "■"
+  show White = "□"
+  show Unknown = "?"
+  show _ = "!"
+
+instance Show Board where
+  show (Board _ fs) = unlines $ map show' fs
+    where
+      show' :: [Field] -> String
+      show' []     = []
+      show' (x:xs) = ' ' : (show x) ++ show' xs

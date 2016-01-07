@@ -1,7 +1,8 @@
 module Solution (solve)
 where
-import Board
-import Creek
+import           Board (Board)
+import qualified Board
+import           Creek
 
 solve :: Creek -> Board
-solve x = undefined
+solve (Creek size conditions) = Board.empty size
