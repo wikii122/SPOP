@@ -4,6 +4,7 @@ module Board
   , Quad
   , (!.), (!#)
   , empty
+  , combinations
   ) where
 
 import Creek (Location, Size, Creek)
@@ -43,6 +44,26 @@ board !. loc = field board loc
 -- Get quad operator
 (!#) :: Board -> Location -> Quad
 board !# loc = quad board loc
+
+-- Used to fill Unknown fields of the quad to sum up given
+-- number of black fields
+combinations :: Quad -> Int -> [Quad]
+combinations quad n = let
+    matchQuads :: Int -> [Field] -> [[Field]]
+    matchQuads n fs = findCombinations n [] fs
+
+    findCombinations :: Int -> [Field] -> [Field] -> [[Field]]
+    findCombinations 0 hs [] = [reverse hs]
+    findCombinations _ hs [] = []
+    findCombinations n hs (f:fs) = case f of
+      Unknown | n > 0 -> (findCombinations n (White:hs) fs) ++ (findCombinations (n-1) (Black:hs) fs)
+              | n == 0 -> findCombinations n (White:hs) fs
+              | otherwise -> []
+      Black   | n > 0 -> findCombinations (n-1) (Black:hs) fs
+              | otherwise -> []
+      other -> findCombinations n (other:hs) fs
+  in
+    map fieldsToQuad $ matchQuads n $ quadToFields quad
 
 
 -- Helper functions
