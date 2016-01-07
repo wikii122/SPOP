@@ -1,6 +1,9 @@
 module Board
   ( Field
   , Board
+  , Quad
+  , (!.), (!#),
+  , empty
   ) where
 
 import Creek (Location, Size, Creek)
@@ -30,8 +33,8 @@ quad board (x, y) = ((ys1 !! x, ys1 !! (x+1)),
 
 -- Operators for field and quad operations
 -- Get field operator
-(!) :: Board -> Location -> Field
-board ! loc = field board loc
+(!.) :: Board -> Location -> Field
+board !. loc = field board loc
 
 -- Get quad operator
 (!#) :: Board -> Location -> Quad
