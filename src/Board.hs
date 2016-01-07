@@ -2,34 +2,38 @@ module Board
   ( Field
   , Board
   , Quad
-  , (!.), (!#),
+  , (!.), (!#)
   , empty
   ) where
 
 import Creek (Location, Size, Creek)
 
-data Field = White | Black | Unknown
+data Field = White | Black | Unknown | Outer
   deriving (Show, Eq)
 
 type Quad = ((Field, Field), (Field, Field))
 
-type Board = [[Field]]
+data Board = Board Size [[Field]]
+  deriving Show
 
 -- Constructor for empty board
 empty :: Size -> Board
-empty (x, y) = replicate y $ replicate x Unknown
+empty size@(x, y) = Board size $ replicate y $ replicate x Unknown
 
 -- Get value from a field
 field :: Board -> Location -> Field
-field board (x, y) = (board !! y) !! x
+field (Board size fs) (x, y) = if (x, y) `inside` size
+  then (fs !! (y)) !! (x)
+  else Outer
+    where
+      (x, y) `inside` (xm, ym) = x >= 0 && x < xm
+                              && y >= 0 && y < ym
 
 -- Get four values from crossing
 quad :: Board -> Location -> Quad
-quad board (x, y) = ((ys1 !! x, ys1 !! (x+1)),
-                     (ys2 !! x, ys2 !! (x+1)))
-                      where
-                        ys1 = board !! y
-                        ys2 = board !! (y+1)
+quad board (x, y) = (
+  (field board (x-1, y-1), field board (  x, y-1)),
+  (field board (x-1,   y), field board (  x,   y)))
 
 -- Operators for field and quad operations
 -- Get field operator
@@ -39,3 +43,11 @@ board !. loc = field board loc
 -- Get quad operator
 (!#) :: Board -> Location -> Quad
 board !# loc = quad board loc
+
+
+-- Helper functions
+quadToFields :: Quad -> [Field]
+quadToFields ((f1, f2), (f3, f4)) = [f1, f2, f3, f4]
+
+fieldsToQuad :: [Field] -> Quad
+fieldsToQuad [f1, f2, f3, f4] =  ((f1, f2), (f3, f4))
