@@ -10,6 +10,8 @@ main = do
   putStrLn $ result
 
 parse :: [String] -> IO String
+-- TODO temporary test, remove
+parse []     = parse ["..\\tests\\sane.txt"]
 parse ["-h"] = return helpText
 parse [path] = do
   content <- readFile path
@@ -29,4 +31,5 @@ helpText = unlines [
   "in supported format and point this executable to it.",
   "",
   "Data file format:",
-  "Creek (length, height) [((x, y), no_black_fields)]"]
+  "Creek (length, height) [((x, y), no_black_fields)]"
+  ]
