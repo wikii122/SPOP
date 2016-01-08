@@ -15,10 +15,12 @@ parse []     = parse ["..\\tests\\sane.txt"]
 parse ["-h"] = return helpText
 parse [path] = do
   content <- readFile path
-  msolve $ read_creek content
-    where
-      read_creek creek = read creek :: Creek
-      msolve = return . show . solve
+  return $ solveCreek content
+      where
+        read_creek creek = read creek :: Creek
+        solveCreek desc  = case (solve $ read_creek desc) of
+                    Right board -> show board
+                    Left msg -> msg
 
 parse  _     = error "Unknown input, try '-h'"
 
