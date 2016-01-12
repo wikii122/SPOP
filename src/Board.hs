@@ -8,9 +8,12 @@ module Board
   , combinations
   , insertField
   , insertQuad
+  , rotate
   ) where
 
-import Creek (Location, Size, Creek)
+import Creek      (Location, Size, Creek)
+import Data.List  (transpose)
+
 
 data Field = White | Black | Unknown | Outer
   deriving Eq
@@ -95,6 +98,10 @@ combinations quad n = let
     map fieldsToQuad $ matchQuads n $ quadToFields quad
 
 
+-- Rotate board clockwise
+rotate :: Board -> Board
+rotate (Board size fs) = Board size $ transpose fs
+
 -- Helper functions
 quadToFields :: Quad -> [Field]
 quadToFields ((f1, f2), (f3, f4)) = [f1, f2, f3, f4]
@@ -104,7 +111,7 @@ fieldsToQuad [f1, f2, f3, f4]     =  ((f1, f2), (f3, f4))
 
 -- Pretty printers
 instance Show Field where
-  show Black   = "X"--"■"
+  show Black   = "X" -- "■"
   show White   = " " -- "□"
   show Unknown = "?"
   show _       = "!"
@@ -115,3 +122,4 @@ instance Show Board where
       show' :: [Field] -> String
       show' []     = "|"
       show' (x:xs) = '|' : (show x) ++ show' xs
+
