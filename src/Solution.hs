@@ -33,8 +33,9 @@ findSolution (Just board) loc (q:qs) (c:cs) = case (findSolution newBoard (fst c
                                                     num          = snd c
 
 passable :: Board -> Maybe Board
-passable (Board.Board x fields) =( Just (Board.Board x (fillBoard fields)))
-
+passable (Board.Board x fields) | countWhite boardResult == countWhite flagResult = ( Just (Board.Board x boardResult))
+                                | otherwise = Nothing  where 
+                                   [boardResult, flagResult] = fillBoard fields
 
 findWhite :: [[Board.Field]]  -> Prelude.Maybe Location
 findWhite [] =  Nothing
@@ -73,8 +74,8 @@ prepareFlagTable ([]:xs) = []:prepareFlagTable(xs)
 prepareFlagTable ((x:xs):ys) = (Board.Unknown:xss):yss where 
                       (xss:yss) = prepareFlagTable(xs:ys)
 
-copyWhite :: [[Board.Field]]  -> [[Board.Field]] 
-copyWhite xs = ys  where [ys, _ ] =  copyWhite' [xs, prepareFlagTable xs ] (findWhite xs)
+copyWhite :: [[Board.Field]]  -> [[[Board.Field]]] 
+copyWhite xs = copyWhite' [xs, prepareFlagTable xs ] (findWhite xs)
 --[BOARD, FLAGS]
 copyWhite' :: [[[Board.Field]]]  -> Maybe Location -> [[[Board.Field]]]
 copyWhite' [] _ = []
@@ -90,6 +91,15 @@ fillBlack ([]:ys)     = ([]:yss) where (yss) = fillBlack (ys)
 fillBlack ((x:xs):ys) | x == Board.Unknown = ((Board.Black:xss):yss) 
             | otherwise = ((x:xss):yss) where (xss:yss) = fillBlack (xs:ys)
 
-fillBoard :: [[Board.Field]] -> [[Board.Field]]
+fillBoard :: [[Board.Field]] -> [[[Board.Field]]]
 fillBoard [] = []
-fillBoard xs = fillBlack ( copyWhite xs )
+fillBoard xs = [board', flag] where 
+      [board, flag] = copyWhite xs 
+      board' = fillBlack ( board )
+
+
+countWhite :: [[Board.Field]] -> Int
+countWhite [] = 0
+countWhite ([]:xs) = countWhite(xs)
+countWhite ((x:xs):ys)  | x == Board.White = (1+ countWhite (xs:ys))
+            | otherwise =  countWhite (xs:ys)
