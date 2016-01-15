@@ -32,82 +32,87 @@ findSolution (Just board) loc (q:qs) (c:cs) = case (findSolution newBoard (fst c
                                                     combinations = Board.combinations newQuad num
                                                     num          = snd c
 
+--Check is board acceptable- are all white fields connected.
 passable :: Board -> Maybe Board
-passable (Board x fields) | countWhite boardResult == countWhite flagResult = ( Just (Board x boardResult))
-                          | otherwise = Nothing
-                          where
-                            [boardResult, flagResult] = fillBoard fields
+passable (Board x fields) | countWhite (Board size1 boardResult) == 
+                            countWhite (Board size2 flagResult) = ( Just(Board x boardResult))
+                          | otherwise                           = Nothing
+                              where
+                            [Just (Board size1 boardResult), Just (Board size2 flagResult)] = fillBoard (Board x fields)
 
-findWhite :: [[Board.Field]]  -> Prelude.Maybe Location
-findWhite [] =  Nothing
-findWhite fields =  findElement fields Board.White
+--Find location of first white board
+findWhite :: Board  ->  Location
+findWhite (Board size fields) =  findElement (Board size fields) Board.White
 
-findElement :: [[Board.Field]] -> Board.Field ->  Maybe Location
-findElement fields x = findElement' fields x 0 0
+--Find location of first field with given type
+findElement :: Board -> Board.Field -> Location
+findElement  (Board size fields) x = findElement'  (Board size fields) x 0 0 
 
-findElement' :: [[Board.Field]]-> Board.Field -> Int -> Int  -> Maybe Location
-findElement' [] _ _ _=  Nothing
-findElement' ((x:xs):ys) z a b    | x == z =  Just (a,b)
-                                | otherwise  = findElement' (xs:ys) z (a+1) b
-findElement' ([]:xs) z a b = findElement' (xs) z 0 (b + 1)
+findElement' :: Board-> Board.Field -> Int -> Int  -> Location
+findElement' (Board size [])          _ _ _              = (-1,-1)
+findElement' (Board size ((x:xs):ys)) z a b | x == z     = (a,b)
+                                            | otherwise  = findElement' (Board size (xs:ys)) z (a+1) b
+findElement' (Board  size ([]:xs))    z a b              = findElement' (Board  size (xs)) z 0 (b + 1)
 
-getElement :: [[Board.Field]] -> Location -> Maybe Board.Field
-getElement [] _ = Nothing
-getElement ((x:xs):ys) (0,0) = Just x
-getElement ([]:xs) (a,b) | a > 0 = Nothing
-             | otherwise = getElement (xs) (a-1, 0)
-getElement ((x:xs):ys) (a,0)  = getElement (xs:ys) (a-1, 0)
-getElement (xs:ys) (a,b) | b < 0 = Nothing
-             | otherwise  = getElement ys (a, b-1)
-
-setElement :: [[Board.Field]] -> Maybe Location -> Board.Field -> [[Board.Field]]
-setElement xs Nothing _ = xs
-setElement [] _ _= []
-setElement ((x:xs):ys) (Just (0,0)) z  = ((z:xs):ys)
-setElement ([]:xs) (Just (a,b)) z     | a > 0     = (xs)
-                        | otherwise = (setElement (xs) (Just (a-1, 0)) z)
-setElement ((x:xs):ys) (Just (a,0)) z = ((x:xss):yss) where (xss:yss) = setElement (xs:ys) (Just (a-1, 0)) z
-setElement (xs:ys) (Just (a,b)) z     | b < 0 = (xs:ys)
-                        | otherwise  = (xs:setElement ys (Just (a, b-1)) z)
-
-prepareFlagTable :: [[Board.Field]] -> [[Board.Field]]
-prepareFlagTable [] = []
-prepareFlagTable ([]:xs) = []:prepareFlagTable(xs)
-prepareFlagTable ((x:xs):ys) = (Board.Unknown:xss):yss where
-                      (xss:yss) = prepareFlagTable(xs:ys)
-
-copyWhite :: [[Board.Field]]  -> [[[Board.Field]]]
-copyWhite xs  | white == Nothing = copyWhite' [newBoard, newFlagsTable] unknownField
-              | otherwise =  copyWhite' [xs, prepareFlagTable xs ] white where
-                  white = findWhite xs
-                  unknownField = findElement xs Board.Unknown
-                  newBoard = setElement xs unknownField Board.White
-                  newFlagsTable = prepareFlagTable newBoard
+--1. find white field
+--2. change all undefined neighbours of field to White
+--3. repeat for all White neighbours.
+copyWhite :: Board  -> [Maybe Board]
+copyWhite (Board size xs)  | whiteX == -1  = copyWhite'[(newBoard), (newFlagsTable)] unknownField
+                           | otherwise     = copyWhite' [Just(Board size xs), 
+                                                      Just(Board.empty size) ] (whiteX, whiteY) where
+                              (whiteX, whiteY) = findWhite (Board size xs) 
+                              unknownField     = findElement (Board size xs)  Board.Unknown
+                              newBoard         = Board.insertField (Board size xs) unknownField Board.White
+                              newFlagsTable    = Just(Board.empty size)
 
 --[BOARD, FLAGS]
-copyWhite' :: [[[Board.Field]]]  -> Maybe Location -> [[[Board.Field]]]
-copyWhite' [] _ = []
-copyWhite' xs Nothing = xs
-copyWhite' [board, flags] (Just (x,y))  | getElement flags (x,y) == (Just Board.White) = [board, flags]
-                    | getElement board (x,y) == (Just Board.White) = copyWhite' (copyWhite' (copyWhite' (copyWhite' [board, setElement flags (Just (x,y)) Board.White ] (Just (x-1, y))) (Just (x, y-1))) (Just (x, y+1))) (Just (x+1, y))
-                      | getElement board (x,y) == (Just Board.Unknown) = copyWhite' (copyWhite' (copyWhite' (copyWhite' [setElement board (Just (x,y)) Board.White, setElement flags (Just (x,y)) Board.White ] (Just (x-1, y))) (Just (x, y-1))) (Just (x, y+1))) (Just (x+1, y))
-                      | otherwise = [board, flags]
+copyWhite' :: [Maybe Board]  -> Location -> [Maybe Board]
+copyWhite' (Nothing:_)                 _        = [Nothing, Nothing]
+copyWhite' []                          _        = []
+copyWhite' [Just(board), Just(flags)]  (x,y)  | Board.field (flags) (x,y) == Board.White 
+                                                      = [Just(board), Just(flags)]
+                                              | Board.field board (x,y) == Board.White 
+                                                            = copyWhite' (
+                                                                 copyWhite' (
+                                                                   copyWhite' (
+                                                                     copyWhite' [Just(board), 
+                                                                                 Board.insertField flags (x,y) Board.White ] (x-1, y)) 
+                                                                   (x, y-1))
+                                                                 (x, y+1)) 
+                                                              (x+1, y)
+                                              | Board.field board (x,y) == Board.Unknown 
+                                                            = copyWhite' (
+                                                                 copyWhite' (
+                                                                   copyWhite' (
+                                                                     copyWhite' [(Board.insertField board (x,y) Board.White), 
+                                                                                 (Board.insertField flags (x,y) Board.White )] (x-1, y)) 
+                                                                   (x, y-1))
+                                                                (x, y+1))
+                                                              (x+1, y)
+                                              | otherwise   =  [Just(board), Just(flags)]
 
-fillBlack :: [[Board.Field]] -> [[Board.Field]]
-fillBlack [] = []
-fillBlack ([]:ys)     = ([]:yss) where (yss) = fillBlack (ys)
-fillBlack ((x:xs):ys) | x == Board.Unknown = ((Board.Black:xss):yss)
-            | otherwise = ((x:xss):yss) where (xss:yss) = fillBlack (xs:ys)
+--change all undefined fields to Black
+fillBlack :: Maybe Board -> Maybe Board
+fillBlack Nothing = Nothing
+fillBlack (Just(Board size []))            = Just(Board size [])
+fillBlack (Just(Board size ([]:ys)))       = Just(Board size ([]:yss)) where 
+                                                  Just(Board size (yss)) = fillBlack (Just(Board size (ys)))
+fillBlack (Just(Board size ((x:xs):ys)))   | x == Board.Unknown  = Just(Board size (((Board.Black:xss):yss)))
+                                           | otherwise           = Just(Board size ((x:xss):yss)) where 
+                                                                        Just(Board size (xss:yss)) = fillBlack (Just(Board size (xs:ys)))
+--1. Fill fields with white color using copyWhite function
+--2. All Undefined fields set to Black
+fillBoard :: Board -> [Maybe Board]
+fillBoard (Board size []) = []
+fillBoard xs              = [board', flag] where
+                              [board, flag] = copyWhite xs
+                              board'        = fillBlack ( board )
 
-fillBoard :: [[Board.Field]] -> [[[Board.Field]]]
-fillBoard [] = []
-fillBoard xs = [board', flag] where
-      [board, flag] = copyWhite xs
-      board' = fillBlack ( board )
-
-
-countWhite :: [[Board.Field]] -> Int
-countWhite [] = 0
-countWhite ([]:xs) = countWhite(xs)
-countWhite ((x:xs):ys)  | x == Board.White = (1+ countWhite (xs:ys))
-            | otherwise =  countWhite (xs:ys)
+--Count white fields in board
+countWhite :: Board -> Int
+countWhite (Board  _    [])          = 0
+countWhite (Board size ([]:xs))      = countWhite (Board size xs)
+countWhite (Board size ((x:xs):ys))  | x == Board.White 
+                                                 = (1 + countWhite (Board size (xs:ys)))
+                                     | otherwise = countWhite (Board size (xs:ys))

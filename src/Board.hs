@@ -6,6 +6,7 @@ module Board
   , empty
   , whites
   , combinations
+  , field
   , insertField
   , insertQuad
   , rotate
