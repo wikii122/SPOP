@@ -40,15 +40,16 @@ passable (Board x fields) | countWhite boardResult == countWhite flagResult = ( 
 
 findWhite :: [[Board.Field]]  -> Prelude.Maybe Location
 findWhite [] =  Nothing
-findWhite fields = let
-  findWhite' :: [[Board.Field]] -> Int -> Int  -> Prelude.Maybe Location
-  findWhite' [] _ _ =  Nothing
-  findWhite' ((x:xs):ys) a b    | x == Board.White =  Just (a,b)
-                              | otherwise  = findWhite' (xs:ys) (a+1) b
-  findWhite' ([]:xs) a b = findWhite' (xs) 0 (b + 1)
-  in
-  findWhite' fields 0 0
+findWhite fields =  findElement fields Board.White
 
+findElement :: [[Board.Field]] -> Board.Field ->  Maybe Location
+findElement fields x = findElement' fields x 0 0
+
+findElement' :: [[Board.Field]]-> Board.Field -> Int -> Int  -> Maybe Location
+findElement' [] _ _ _=  Nothing
+findElement' ((x:xs):ys) z a b    | x == z =  Just (a,b)
+                                | otherwise  = findElement' (xs:ys) z (a+1) b
+findElement' ([]:xs) z a b = findElement' (xs) z 0 (b + 1)
 
 getElement :: [[Board.Field]] -> Location -> Maybe Board.Field
 getElement [] _ = Nothing
@@ -76,7 +77,13 @@ prepareFlagTable ((x:xs):ys) = (Board.Unknown:xss):yss where
                       (xss:yss) = prepareFlagTable(xs:ys)
 
 copyWhite :: [[Board.Field]]  -> [[[Board.Field]]]
-copyWhite xs = copyWhite' [xs, prepareFlagTable xs ] (findWhite xs)
+copyWhite xs  | white == Nothing = copyWhite' [newBoard, newFlagsTable] unknownField
+              | otherwise =  copyWhite' [xs, prepareFlagTable xs ] white where
+                  white = findWhite xs
+                  unknownField = findElement xs Board.Unknown
+                  newBoard = setElement xs unknownField Board.White
+                  newFlagsTable = prepareFlagTable newBoard
+
 --[BOARD, FLAGS]
 copyWhite' :: [[[Board.Field]]]  -> Maybe Location -> [[[Board.Field]]]
 copyWhite' [] _ = []
